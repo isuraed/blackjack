@@ -117,7 +117,7 @@ public final class Blackjack {
                                 winningHand = dealerHand;
                             else if (playerSoftValue > dealerHand.getSoftValue())
                                 winningHand = playerHand;
-                        
+                        }
                         else {
                             // Player's soft hand is no good so compare player's hard value.
                             if (dealerHand.getSoftValue() > playerHardValue)
