@@ -22,7 +22,9 @@ public final class Blackjack {
     }
 
     private void play() {
-        console.printf("Let's play some blackjack!\n");
+        Commentary commentary = new Commentary(console);
+
+        commentary.printWelcome();
 
         int chipCount = 100;
         boolean gameIsDone = false;
@@ -31,7 +33,7 @@ public final class Blackjack {
             GameOption gameOption = getValidGameOption();
 
             if (gameOption == GameOption.QUIT) {
-                console.printf("Thank you for playing. Goodbye.\n");
+                commentary.printGoodbye();
                 gameIsDone = true;
             }
             else {
@@ -53,35 +55,42 @@ public final class Blackjack {
                 playerHand.addCard(deck.dealNextCard());
                 dealerHand.addCard(deck.dealNextCard());
 
+                commentary.printDealing();
+
                 if (dealerHand.isBlackjack()) {
                     handIsDone = true;
-                    printDealerHand(dealerHand);
-                    printPlayerHand(playerHand);
 
                     if (playerHand.isBlackjack()) {
-                        console.printf("Push. Dealer and player both have blackjack!\n");
+                        commentary.printBlackjackPush();
                     }
                     else {
                         chipCount -= betAmount;
-                        console.printf("Dealer wins...Dealer has blackjack!\n");
+                        commentary.printDealerBlackjack();
                     }
+
+                    commentary.printDealerHand(dealerHand);
+                    commentary.printPlayerHand(playerHand);
                 }
 
                 while (!handIsDone) {
-                    printDealerStartingHand(dealerHand);
-                    printPlayerHand(playerHand);
+                    commentary.printDealerStartingHand(dealerHand);
+                    commentary.printPlayerHand(playerHand);
                     
                     HandOption handOption = getValidHandOption();
 
                     if (handOption == HandOption.HIT) {
                         playerHand.addCard(deck.dealNextCard());
 
+                        commentary.printHitting();
+
                         if (playerHand.isBusted()) {
-                            printDealerStartingHand(dealerHand);
-                            printPlayerHand(playerHand);
                             handIsDone = true;
+
                             chipCount -= betAmount;
-                            console.printf("You busted...Dealer wins.\n");
+
+                            commentary.printDealerStartingHand(dealerHand);
+                            commentary.printPlayerHand(playerHand);
+                            commentary.printPlayerBusted();
                         }
                     }
                     else {
@@ -99,8 +108,9 @@ public final class Blackjack {
                             dealerHand.addCard(deck.dealNextCard());
                         }
 
-                        printDealerHand(dealerHand);
-                        printPlayerHand(playerHand);
+                        commentary.printStaying();
+                        commentary.printDealerHand(dealerHand);
+                        commentary.printPlayerHand(playerHand);
 
                         // Evaluate winner
                         assert !playerHand.isBusted();
@@ -128,15 +138,23 @@ public final class Blackjack {
 
                         if (winningHand == null) {
                             // A push.
-                            console.printf("Push.\n");
+                            commentary.printPush(dealerHand.getSoftValue());
                         }
                         else if (winningHand == dealerHand) {
                             chipCount -= betAmount;
-                            console.printf("Dealer wins...\n");
+                            commentary.printDealerWins(dealerHand.getSoftValue());
                         }
                         else {
                             chipCount += betAmount;
-                            console.printf("You win! Congratulations!!\n");
+
+                            int winningValue = playerSoftValue;
+                            if (playerSoftValue > 21)
+                                winningValue = playerHardValue;
+
+                            if (dealerHand.isBusted())
+                                commentary.printDealerBusted();
+                            else
+                                commentary.printPlayerWins(winningValue);
                         }
                     }
                 }
@@ -145,6 +163,8 @@ public final class Blackjack {
     }
 
     private GameOption getValidGameOption() {
+        pauseForEffect(2000);
+
         // Get a valid game option from user. Repeatedly prompt until option is valid.
         String optionStr;
         while (true) {
@@ -165,6 +185,8 @@ public final class Blackjack {
     }
 
     private int getValidBetAmount(int chipCount) {
+        pauseForEffect(1000);
+
         // Repeatedly prompt until a valid bet amount is entered.
         // We need the try block because parseInt throws.
         while (true) {
@@ -182,6 +204,8 @@ public final class Blackjack {
     }
 
     private HandOption getValidHandOption() {
+        pauseForEffect(2000);
+
         // Get a valid hand option from user. Repeatedly prompt until option is valid.
         String optionStr;
         while (true) {
@@ -201,15 +225,13 @@ public final class Blackjack {
         }
     }
 
-    private void printDealerStartingHand(Hand dealerHand) {
-        console.printf("Dealer: " + dealerHand.showUpCard() + "\n");
-    }
-
-    private void printDealerHand(Hand dealerHand) {
-        console.printf("Dealer: " + dealerHand.showHand() + "\n");
-    }
-
-    private void printPlayerHand(Hand playerHand) {
-        console.printf("Player: " + playerHand.showHand() + "\n");
+    private void pauseForEffect(int milliseconds) {
+        // Sleep for a few seconds for effect.
+        try {
+            Thread.sleep(milliseconds);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
