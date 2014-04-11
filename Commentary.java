@@ -11,7 +11,6 @@ public final class Commentary {
     }
 
     public void printWelcome() {
-        printEmptyLine();
         printLine("Let's play some blackjack...Good luck!");
         printEmptyLine();
     }
@@ -20,7 +19,6 @@ public final class Commentary {
         printEmptyLine();
         printLine("Thank you for playing. Goodbye...");
         pauseForEffect(2000);
-        printEmptyLine();
     }
 
     public void printDealing() {
@@ -55,12 +53,12 @@ public final class Commentary {
     public void printBlackjackPush() {
         pauseForEffect(RESULT_PAUSE_TIME);
         printLine("Dealer and player both have blackjack! Push.");
-        printEmptyLine();
     }
 
     public void printPush(int handValue) {
         pauseForEffect(RESULT_PAUSE_TIME);
         console.printf("You and dealer both have %d. Push.\n", handValue);
+        printEmptyLine();
         printEmptyLine();
     }
 
@@ -68,11 +66,13 @@ public final class Commentary {
         pauseForEffect(RESULT_PAUSE_TIME);
         printLine("Dealer has blackjack...Dealer wins.");
         printEmptyLine();
+        printEmptyLine();
     }
 
     public void printDealerBusted() {
         pauseForEffect(RESULT_PAUSE_TIME);
         printLine("Dealer busts! You win.");
+        printEmptyLine();
         printEmptyLine();
     }
 
@@ -80,17 +80,27 @@ public final class Commentary {
         pauseForEffect(RESULT_PAUSE_TIME);
         console.printf("Dealer wins with %d...\n", handValue);
         printEmptyLine();
+        printEmptyLine();
+    }
+
+    public void printPlayerBlackjack() {
+        pauseForEffect(RESULT_PAUSE_TIME);
+        printLine("You have blackjack!!! You win.");
+        printEmptyLine();
+        printEmptyLine();
     }
 
     public void printPlayerBusted() {
         pauseForEffect(RESULT_PAUSE_TIME);
         printLine("You busted...Dealer wins.");
         printEmptyLine();
+        printEmptyLine();
     }
 
     public void printPlayerWins(int handValue) {
         pauseForEffect(RESULT_PAUSE_TIME);
         console.printf("You win with %d!\n", handValue);
+        printEmptyLine();
         printEmptyLine();
     }
 
