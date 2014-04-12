@@ -38,13 +38,11 @@ public final class Blackjack {
             GameOption gameOption = getValidGameOption();
 
             if (gameOption == GameOption.QUIT) {
-                commentary.printGoodbye();
                 gameIsDone = true;
+                commentary.printGoodbye();
             }
             else {
                 assert gameOption == GameOption.DEAL;
-
-                boolean handIsDone = false;
 
                 int betAmount = getValidBetAmount(chipCount);
                 assert betAmount >= 1 && betAmount <= chipCount;
@@ -52,13 +50,7 @@ public final class Blackjack {
                 Hand dealerHand = new Hand();
                 Hand playerHand = new Hand();
 
-                deck.shuffle();
-
-                playerHand.addCard(deck.dealNextCard());
-                dealerHand.addCard(deck.dealNextCard());
-                playerHand.addCard(deck.dealNextCard());
-                dealerHand.addCard(deck.dealNextCard());
-
+                dealStartingHands(dealerHand, playerHand);
                 playHand(dealerHand, playerHand, betAmount);
             }
         }
@@ -111,77 +103,73 @@ public final class Blackjack {
                 }
             }
             else {
-                assert handOption == HandOption.STAY;
                 handIsDone = true;
 
                 playDealerHand(dealerHand);
-                
+                Hand winningHand = evaluateWinningHand(dealerHand, playerHand);
+
                 commentary.printStaying();
                 commentary.printDealerHand(dealerHand);
                 commentary.printPlayerHand(playerHand);
 
-                // Evaluate winner
-                assert !playerHand.isBusted();
-                Hand winningHand = null;
-                int playerSoftValue = playerHand.getSoftValue();
-                int playerHardValue = playerHand.getHardValue();
-
-                if (dealerHand.isBusted()) {
-                    winningHand = playerHand;
-                }
-                else if (playerSoftValue <= 21) {
-                    // Since softValue >= hardValue.
-                    if (dealerHand.getSoftValue() > playerSoftValue)
-                        winningHand = dealerHand;
-                    else if (playerSoftValue > dealerHand.getSoftValue())
-                        winningHand = playerHand;
-                }
-                else {
-                    // Player's soft hand is no good so compare player's hard value.
-                    if (dealerHand.getSoftValue() > playerHardValue)
-                        winningHand = dealerHand;
-                    else if (playerHardValue > dealerHand.getSoftValue())
-                        winningHand = playerHand;
-                }
-
                 if (winningHand == null) {
-                    // A push.
                     commentary.printPush(dealerHand.getSoftValue());
                 }
                 else if (winningHand == dealerHand) {
                     decreaseChipCount(betAmount);
+
                     commentary.printDealerWins(dealerHand.getSoftValue());
                 }
                 else {
                     increaseChipCount(betAmount);
 
-                    int winningValue = playerSoftValue;
-                    if (playerSoftValue > 21)
-                        winningValue = playerHardValue;
-
                     if (dealerHand.isBusted())
                         commentary.printDealerBusted();
                     else
-                        commentary.printPlayerWins(winningValue);
+                        commentary.printPlayerWins(playerHand.getSoftValue());
                 }
             }
         }
     }
 
+    private void dealStartingHands(Hand dealerHand, Hand playerHand) {
+        deck.shuffle();
+
+        playerHand.addCard(deck.dealNextCard());
+        dealerHand.addCard(deck.dealNextCard());
+        playerHand.addCard(deck.dealNextCard());
+        dealerHand.addCard(deck.dealNextCard());
+    }
+
     private void playDealerHand(Hand dealerHand) {
         // Deal out cards until dealer reaches at least 17 or busts.
         while (true) {
-            int effectiveValue;
-            if (dealerHand.getSoftValue() <= 21)
-                effectiveValue = dealerHand.getSoftValue();
-            else
-                effectiveValue = dealerHand.getHardValue();
-
-            if ((effectiveValue >= 17 && effectiveValue <= 21) || dealerHand.isBusted())
+            int softValue = dealerHand.getSoftValue();
+            if ((softValue >= 17 && softValue <= 21) || dealerHand.isBusted())
                 break;
 
             dealerHand.addCard(deck.dealNextCard());
         }
+    }
+
+    private Hand evaluateWinningHand(Hand dealerHand, Hand playerHand) {
+        assert !playerHand.isBusted();
+
+        // It is enough to compare soft hand value since softValue >= hardValue
+        // and softValue = hardValue if there are no aces in the hand.
+        // Return null if the hand is a push.
+        Hand winningHand = null;
+        int dealerValue = dealerHand.getSoftValue();
+        int playerValue = playerHand.getHardValue();
+
+        if (dealerHand.isBusted() || playerValue > dealerValue) {
+            winningHand = playerHand;
+        }
+        else if (dealerValue > playerValue) {
+            winningHand = dealerHand;
+        }
+
+        return winningHand;
     }
     
     private void increaseChipCount(int bet) {

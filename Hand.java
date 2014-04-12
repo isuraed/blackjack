@@ -25,8 +25,9 @@ public final class Hand {
     }
 
     public int getSoftValue() {
-        if (hasAce)
-            return hardValue + 10;
+        int softValue = hardValue + 10;
+        if (hasAce && softValue <= 21)
+            return softValue;
         else
             return hardValue;
     }
