@@ -17,7 +17,7 @@ public final class Blackjack {
 
     private enum GameOption { DEAL, QUIT }
     
-    private enum HandOption { STAY, HIT, DOUBLE_DOWN }
+    private enum HandOption { STAY, HIT, DOUBLE_DOWN, SPLIT }
 
     public static void main(String[] args) {
         Console console = System.console();
@@ -49,104 +49,15 @@ public final class Blackjack {
 
                 Hand dealerHand = new Hand();
                 Hand playerHand = new Hand();
-
                 dealStartingHands(dealerHand, playerHand);
-                playHand(dealerHand, playerHand, betAmount);
+
+                HandInstance hand = new HandInstance(dealerHand, playerHand, betAmount);
+                hand.play();
 
                 assert chipCount >= 0;
-                if (chipCount == 0)
+                if (chipCount == 0) {
                     commentary.printOutOfChips();
-            }
-        }
-    }
-
-    private void playHand(Hand dealerHand, Hand playerHand, int betAmount) {
-        boolean handIsDone = false;
-
-        commentary.printDealing();
-
-        // Handle blackjack case first.
-        if (dealerHand.isBlackjack() || playerHand.isBlackjack()) {
-            handIsDone = true;
-
-            commentary.printDealerHand(dealerHand);
-            commentary.printPlayerHand(playerHand);
-
-            if (dealerHand.isBlackjack() && playerHand.isBlackjack()) {
-                commentary.printBlackjackPush();
-            }
-            else if (dealerHand.isBlackjack()) {
-                decreaseChipCount(betAmount);
-                commentary.printDealerBlackjack();
-            }
-            else {
-                increaseChipCount(betAmount);
-                commentary.printPlayerBlackjack();
-            }
-        }
-
-        while (!handIsDone) {
-            commentary.printDealerStartingHand(dealerHand);
-            commentary.printPlayerHand(playerHand);
-
-            HandOption handOption;
-
-            if (playerHand.isStartingHand())
-                handOption = getValidStartingHandOption();
-            else
-                handOption = getValidHandOption();
-
-            if (handOption == HandOption.DOUBLE_DOWN) {
-                handIsDone = true;
-
-                betAmount = Math.min(2 * betAmount, chipCount);
-                playerHand.addCard(deck.dealNextCard());
-
-                commentary.printDoublingDown();
-
-                if (playerHand.isBusted()) {
-                    decreaseChipCount(betAmount);
-
-                    commentary.printDealerStartingHand(dealerHand);
-                    commentary.printPlayerHand(playerHand);
-                    commentary.printPlayerBusted();
                 }
-                else {
-                    playDealerHand(dealerHand);
-
-                    commentary.printDealerHand(dealerHand);
-                    commentary.printPlayerHand(playerHand);
-
-                    Hand winningHand = evaluateWinningHand(dealerHand, playerHand);
-                    finalizeHand(dealerHand, playerHand, winningHand, betAmount);
-                }
-            }
-            else if (handOption == HandOption.HIT) {
-                playerHand.addCard(deck.dealNextCard());
-
-                commentary.printHitting();
-
-                if (playerHand.isBusted()) {
-                    handIsDone = true;
-
-                    decreaseChipCount(betAmount);
-
-                    commentary.printDealerStartingHand(dealerHand);
-                    commentary.printPlayerHand(playerHand);
-                    commentary.printPlayerBusted();
-                }
-            }
-            else {
-                handIsDone = true;
-
-                playDealerHand(dealerHand);
-
-                commentary.printStaying();
-                commentary.printDealerHand(dealerHand);
-                commentary.printPlayerHand(playerHand);
-
-                Hand winningHand = evaluateWinningHand(dealerHand, playerHand);
-                finalizeHand(dealerHand, playerHand, winningHand, betAmount);
             }
         }
     }
@@ -158,57 +69,6 @@ public final class Blackjack {
         playerHand.addCard(deck.dealNextCard());
         dealerHand.addCard(deck.dealNextCard());
     }
-
-    private void playDealerHand(Hand dealerHand) {
-        // Deal out cards until dealer reaches at least 17 or busts.
-        while (true) {
-            int softValue = dealerHand.getSoftValue();
-            if ((softValue >= 17 && softValue <= 21) || dealerHand.isBusted())
-                break;
-
-            dealerHand.addCard(deck.dealNextCard());
-        }
-    }
-
-   private Hand evaluateWinningHand(Hand dealerHand, Hand playerHand) {
-        assert !playerHand.isBusted();
-
-        // It is enough to compare soft hand value since softValue >= hardValue
-        // and softValue = hardValue if there are no aces in the hand.
-        // Return null if the hand is a push.
-        Hand winningHand = null;
-        int dealerValue = dealerHand.getSoftValue();
-        int playerValue = playerHand.getSoftValue();
-
-        if (dealerHand.isBusted() || playerValue > dealerValue) {
-            winningHand = playerHand;
-        }
-        else if (dealerValue > playerValue) {
-            winningHand = dealerHand;
-        }
-
-        return winningHand;
-    }
-
-   private void finalizeHand(Hand dealerHand, Hand playerHand, Hand winningHand, int betAmount) {
-       // Player has not busted and dealer has played out his hand.
-       if (winningHand == null) {
-           commentary.printPush(dealerHand.getSoftValue());
-       }
-       else if (winningHand == dealerHand) {
-           decreaseChipCount(betAmount);
-
-           commentary.printDealerWins(dealerHand.getSoftValue());
-       }
-       else {
-           increaseChipCount(betAmount);
-
-           if (dealerHand.isBusted())
-               commentary.printDealerBusted();
-           else
-               commentary.printPlayerWins(playerHand.getSoftValue());
-       }
-   }
 
     private void increaseChipCount(int bet) {
         chipCount += bet;
@@ -315,4 +175,162 @@ public final class Blackjack {
             Thread.currentThread().interrupt();
         }
     }
+
+    // Inner class that implements the logic of playing out a single hand instance.
+    private final class HandInstance {
+        private Hand dealerHand;
+        private Hand playerHand;
+        int betAmount;
+
+        public HandInstance(Hand dealerStartingHand, Hand playerStartingHand,
+            int startingBetAmount) {
+            dealerHand = dealerStartingHand;
+            playerHand = playerStartingHand;
+            betAmount = startingBetAmount;
+        }
+
+        public void play() {
+            commentary.printDealing();
+
+            if (dealerHand.isBlackjack() || playerHand.isBlackjack()) {
+                processBlackjack();
+                return;
+            }
+
+            playPlayerHand();
+
+            if (playerHand.isBusted()) {
+                processPlayerBust();
+            }
+            else {
+                playDealerHand(dealerHand);
+                finishHand();
+            }
+        }
+
+        private void processBlackjack() {
+            commentary.printDealerHand(dealerHand);
+            commentary.printPlayerHand(playerHand);
+
+            if (dealerHand.isBlackjack() && playerHand.isBlackjack()) {
+                commentary.printBlackjackPush();
+            }
+            else if (dealerHand.isBlackjack()) {
+                decreaseChipCount(betAmount);
+                commentary.printDealerBlackjack();
+            }
+            else {
+                increaseChipCount(betAmount);
+                commentary.printPlayerBlackjack();
+            }
+        }
+
+        private void processPlayerBust() {
+            decreaseChipCount(betAmount);
+
+            commentary.printDealerStartingHand(dealerHand);
+            commentary.printPlayerHand(playerHand);
+            commentary.printPlayerBusted();
+        }
+
+        private void finishHand() {
+            // Player has not busted and dealer has played out his hand.
+            commentary.printDealerHand(dealerHand);
+            commentary.printPlayerHand(playerHand);
+
+            Hand winningHand = evaluateWinningHand();
+
+            if (winningHand == null) {
+                commentary.printPush(dealerHand.getSoftValue());
+            }
+            else if (winningHand == dealerHand) {
+                decreaseChipCount(betAmount);
+                commentary.printDealerWins(dealerHand.getSoftValue());
+            }
+            else {
+                increaseChipCount(betAmount);
+                if (dealerHand.isBusted()) {
+                    commentary.printDealerBusted();
+                }
+                else {
+                    commentary.printPlayerWins(playerHand.getSoftValue());
+                }
+            }
+        }
+
+        private void playPlayerHand() {
+            // Deal out player hand until a stay or bust. This function is called
+            // when there is no blackjack for the dealer or player.
+            assert !dealerHand.isBlackjack();
+            assert !playerHand.isBlackjack();
+
+            while (true) {
+                commentary.printDealerStartingHand(dealerHand);
+                commentary.printPlayerHand(playerHand);
+
+                HandOption handOption;
+
+                if (playerHand.isStartingHand()) {
+                    handOption = getValidStartingHandOption();
+                }
+                else {
+                    handOption = getValidHandOption();
+                }
+
+                if (handOption == HandOption.STAY) {
+                    commentary.printStaying();
+                    return;
+                }
+                else if (handOption == HandOption.DOUBLE_DOWN) {
+                    betAmount = Math.min(2 * betAmount, chipCount);
+                    playerHand.addCard(deck.dealNextCard());
+                    commentary.printDoublingDown();
+                    return;
+                }
+                else if (handOption == HandOption.HIT) {
+                    playerHand.addCard(deck.dealNextCard());
+                    commentary.printHitting();
+                    if (playerHand.isBusted()) {
+                        return;
+                    }
+                }
+                else {
+                    assert false : "Allowed an invalid hand option.";
+                }
+            }
+        }
+
+        private void playDealerHand(Hand dealerHand) {
+            // Deal out cards until dealer reaches at least 17 or busts.
+            while (true) {
+                int softValue = dealerHand.getSoftValue();
+                if ((softValue >= 17 && softValue <= 21) || dealerHand.isBusted()) {
+                    break;
+                }
+
+                dealerHand.addCard(deck.dealNextCard());
+            }
+        }
+
+        private Hand evaluateWinningHand() {
+            assert !playerHand.isBusted();
+
+            // It is enough to compare soft hand value since softValue >= hardValue
+            // and softValue = hardValue if there are no aces in the hand.
+            // Return null if the hand is a push.
+            Hand winningHand = null;
+            int dealerValue = dealerHand.getSoftValue();
+            int playerValue = playerHand.getSoftValue();
+
+            if (dealerHand.isBusted() || playerValue > dealerValue) {
+                winningHand = playerHand;
+            }
+            else if (dealerValue > playerValue) {
+                winningHand = dealerHand;
+            }
+
+            return winningHand;
+        }
+    }
+
 }
