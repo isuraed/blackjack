@@ -52,6 +52,10 @@ public final class Blackjack {
 
                 dealStartingHands(dealerHand, playerHand);
                 playHand(dealerHand, playerHand, betAmount);
+
+                assert chipCount >= 0;
+                if (chipCount == 0)
+                    commentary.printOutOfChips();
             }
         }
     }

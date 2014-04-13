@@ -18,7 +18,10 @@ public final class Commentary {
     public void printGoodbye() {
         printEmptyLine();
         printLine("Thank you for playing. Goodbye...");
-        pauseForEffect(2000);
+    }
+
+    public void printOutOfChips() {
+        printLine("You are out of chips. Goodbye...");
     }
 
     public void printDealing() {
