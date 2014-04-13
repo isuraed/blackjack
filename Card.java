@@ -8,14 +8,6 @@ public final class Card {
         this.rank = rank;
         this.suit = suit;
     }
-    
-    public boolean isAce() {
-        return rank == 'A';
-    }
-
-    private boolean isFaceCard() {
-        return rank == 'T' || rank == 'J' || rank == 'Q' || rank == 'K';
-    }
 
     public int getValue() {
         if (isAce())
@@ -26,7 +18,15 @@ public final class Card {
             return rank - '0';
     }
 
-    public boolean equals(Object other) {
+    public boolean isAce() {
+        return rank == 'A';
+    }
+
+    private boolean isFaceCard() {
+        return rank == 'T' || rank == 'J' || rank == 'Q' || rank == 'K';
+    }
+
+   public boolean equals(Object other) {
         if (other instanceof Card)
             return rank == ((Card)other).rank && suit == ((Card)other).suit;
         else

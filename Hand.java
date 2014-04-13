@@ -40,6 +40,10 @@ public final class Hand {
         return hardValue > 21;
     }
 
+    public boolean isStartingHand() {
+        return cards.size() == 2;
+    }
+
     public String toString() {
         return showHand();
     }

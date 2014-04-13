@@ -26,6 +26,11 @@ public final class Commentary {
         pauseForEffect(DEALING_PAUSE_TIME);
     }
 
+    public void printDoublingDown() {
+        printLine("Doubling down.");
+        pauseForEffect(DEALING_PAUSE_TIME);
+    }
+
     public void printHitting() {
         printLine("Taking a card...");
         pauseForEffect(DEALING_PAUSE_TIME);
