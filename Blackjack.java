@@ -19,6 +19,8 @@ public final class Blackjack {
     
     private enum HandOption { STAY, HIT, DOUBLE_DOWN, SPLIT }
 
+    private enum SplittingRule { ALLOW, DISALLOW }
+
     public static void main(String[] args) {
         Console console = System.console();
         // Running game from outside a console is not supported!
@@ -51,8 +53,23 @@ public final class Blackjack {
                 Hand playerHand = new Hand();
                 dealStartingHands(dealerHand, playerHand);
 
-                HandInstance hand = new HandInstance(dealerHand, playerHand, betAmount);
-                hand.play();
+                if (allowSplitting(dealerHand, playerHand, betAmount)) {
+                    commentary.printDealing();
+                    commentary.printDealerStartingHand(dealerHand);
+                    commentary.printPlayerHand(playerHand);
+
+                    HandOption handOption = getValidStartingHandOption(SplittingRule.ALLOW);
+
+                    if (handOption == HandOption.SPLIT) {
+                        playSplitHands(dealerHand, playerHand, betAmount);
+                    }
+                    else {
+                        playSingleHand(dealerHand, playerHand, betAmount);
+                    }
+                }
+                else {
+                    playSingleHand(dealerHand, playerHand, betAmount);
+                }
 
                 assert chipCount >= 0;
                 if (chipCount == 0) {
@@ -68,6 +85,38 @@ public final class Blackjack {
         dealerHand.addCard(deck.dealNextCard());
         playerHand.addCard(deck.dealNextCard());
         dealerHand.addCard(deck.dealNextCard());
+    }
+
+    private void playSplitHands(Hand dealerHand, Hand playerHand, int betAmount) {
+        Hand copyDealerHand = dealerHand.clone();
+        Hand firstHand = new Hand();
+        Hand secondHand = new Hand();
+
+        firstHand.addCard(playerHand.getFirstCard());
+        secondHand.addCard(playerHand.getSecondCard());
+        firstHand.addCard(deck.dealNextCard());
+        secondHand.addCard(deck.dealNextCard());
+
+        HandInstance firstInstance = new HandInstance(dealerHand, firstHand, betAmount);
+        HandInstance secondInstance = new HandInstance(copyDealerHand, secondHand, betAmount);
+
+        commentary.printSplitting();
+
+        commentary.printDealingFirstHand();
+        firstInstance.play();
+
+        commentary.printDealingSecondHand();
+        secondInstance.play();
+    }
+
+    private void playSingleHand(Hand dealerHand, Hand playerHand, int betAmount) {
+        commentary.printDealing();
+        HandInstance instance = new HandInstance(dealerHand, playerHand, betAmount);
+        instance.play();
+    }
+
+    private boolean allowSplitting(Hand dealerHand, Hand playerHand, int betAmount) {
+        return playerHand.isPair() && !dealerHand.isBlackjack() && 2 * betAmount <= chipCount; 
     }
 
     private void increaseChipCount(int bet) {
@@ -119,16 +168,22 @@ public final class Blackjack {
         }
     }
 
-    private HandOption getValidStartingHandOption() {
+    private HandOption getValidStartingHandOption(SplittingRule splitRule) {
         pauseForEffect(2000);
 
         // Get a valid initial hand option from user. Repeatedly prompt until option is valid.
         // Needed because initially the player has more than simply hit/stay.
+        boolean allowSplitting = (splitRule == SplittingRule.ALLOW);
+        String prompt = allowSplitting ?
+            "[s-stay  h-hit  d-double  p-split]: " :
+            "[s-stay  h-hit  d-double]: ";
         String str;
         while (true) {
-            str = console.readLine("[s-stay  h-hit  d-double down]: ");
-            if (str.equals("s") || str.equals("h") || str.equals("d"))
+            str = console.readLine(prompt);
+            if (str.equals("s") || str.equals("h") || str.equals("d") ||
+                    (allowSplitting && str.equals("p"))) {
                 break;
+            }
         }
 
         switch (str) {
@@ -138,6 +193,9 @@ public final class Blackjack {
                 return HandOption.HIT;
             case "d":
                 return HandOption.DOUBLE_DOWN;
+            case "p":
+                assert allowSplitting;
+                return HandOption.SPLIT;
             default:
                 assert false;
                 return HandOption.STAY;
@@ -190,8 +248,6 @@ public final class Blackjack {
         }
 
         public void play() {
-            commentary.printDealing();
-
             if (dealerHand.isBlackjack() || playerHand.isBlackjack()) {
                 processBlackjack();
                 return;
@@ -271,7 +327,7 @@ public final class Blackjack {
                 HandOption handOption;
 
                 if (playerHand.isStartingHand()) {
-                    handOption = getValidStartingHandOption();
+                    handOption = getValidStartingHandOption(SplittingRule.DISALLOW);
                 }
                 else {
                     handOption = getValidHandOption();
@@ -332,5 +388,4 @@ public final class Blackjack {
             return winningHand;
         }
     }
-
 }

@@ -29,6 +29,16 @@ public final class Commentary {
         pauseForEffect(DEALING_PAUSE_TIME);
     }
 
+    public void printDealingFirstHand() {
+        printLine("Dealing first hand...");
+        pauseForEffect(DEALING_PAUSE_TIME);
+    }
+
+    public void printDealingSecondHand() {
+        printLine("Dealing second hand...");
+        pauseForEffect(DEALING_PAUSE_TIME);
+    }
+
     public void printDoublingDown() {
         printLine("Doubling down.");
         pauseForEffect(DEALING_PAUSE_TIME);
@@ -41,6 +51,11 @@ public final class Commentary {
 
     public void printStaying() {
         printLine("Staying pat. Dealing dealer's hand...");
+        pauseForEffect(DEALING_PAUSE_TIME);
+    }
+
+    public void printSplitting() {
+        printLine("Splitting...");
         pauseForEffect(DEALING_PAUSE_TIME);
     }
 

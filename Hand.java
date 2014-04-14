@@ -11,6 +11,18 @@ public final class Hand {
         hasAce = false;
     }
 
+    public Hand clone() {
+        Hand copy = new Hand();
+
+        for (Card c : cards) {
+            copy.addCard(c);
+        }
+        copy.hardValue = hardValue;
+        copy.hasAce = hasAce;
+
+        return copy;
+    }
+
     public void addCard(Card card) {
         cards.add(card);
         if (card.isAce()) {
@@ -32,6 +44,14 @@ public final class Hand {
             return hardValue;
     }
 
+    public Card getFirstCard() {
+        return cards.get(0);
+    }
+
+    public Card getSecondCard() {
+        return cards.get(1);
+    }
+
     public boolean isBlackjack() {
         return cards.size() == 2 && getSoftValue() == 21;
     }
@@ -42,6 +62,10 @@ public final class Hand {
 
     public boolean isStartingHand() {
         return cards.size() == 2;
+    }
+
+    public boolean isPair() {
+        return cards.size() == 2 && cards.get(0).getValue() == cards.get(1).getValue();
     }
 
     public String toString() {
