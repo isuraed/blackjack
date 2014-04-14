@@ -18,6 +18,7 @@ public final class Deck {
                 cards.add(c);
             }
         }
+
         randomizer = new Random();
         topIndex = 0;
     }

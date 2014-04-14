@@ -3,6 +3,7 @@ import java.io.Console;
 public final class Commentary {
     private static final int DEALING_PAUSE_TIME = 2000;
     private static final int RESULT_PAUSE_TIME = 1500;
+
     private Console console;
 
     public Commentary(Console console) {

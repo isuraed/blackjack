@@ -6,6 +6,11 @@ public final class Blackjack {
     private Deck deck;
     private float chipCount;
 
+    private enum GameOption { DEAL, QUIT }
+    private enum HandOption { STAY, HIT, DOUBLE_DOWN, SPLIT }
+    private enum AllowSplitting { TRUE, FALSE }
+    private enum IsSplitHand { TRUE, FALSE }
+
     private Blackjack(Console console) {
         assert console != null;
         this.console = console;
@@ -14,14 +19,6 @@ public final class Blackjack {
         deck = new Deck();
         chipCount = 100;
     }
-
-    private enum GameOption { DEAL, QUIT }
-    
-    private enum HandOption { STAY, HIT, DOUBLE_DOWN, SPLIT }
-
-    private enum AllowSplitting { TRUE, FALSE }
-
-    private enum AllowBlackjack { TRUE, FALSE }
 
     public static void main(String[] args) {
         Console console = System.console();
@@ -33,6 +30,7 @@ public final class Blackjack {
         game.play();
     }
 
+    // Play until the user quits or runs out of chips.
     private void play() {
         boolean gameIsDone = false;
 
@@ -84,17 +82,27 @@ public final class Blackjack {
 
     private void dealStartingHands(Hand dealerHand, Hand playerHand) {
         deck.shuffle();
+
         playerHand.addCard(deck.dealNextCard());
         dealerHand.addCard(deck.dealNextCard());
         playerHand.addCard(deck.dealNextCard());
         dealerHand.addCard(deck.dealNextCard());
     }
 
+    private void playSingleHand(Hand dealerHand, Hand playerHand, int betAmount) {
+        commentary.printDealing();
+        HandInstance instance = new HandInstance(dealerHand, playerHand, betAmount);
+        instance.play(IsSplitHand.FALSE);
+    }
+
+    // We allow splitting once and split hands are not eligible for blackjack.
     private void playSplitHands(Hand dealerHand, Hand playerHand, int betAmount) {
+        // Clone necessary becase HandInstance class modifies the dealer hand.
         Hand copyDealerHand = dealerHand.clone();
         Hand firstHand = new Hand();
         Hand secondHand = new Hand();
 
+        // Split the hands.
         firstHand.addCard(playerHand.getFirstCard());
         secondHand.addCard(playerHand.getSecondCard());
         firstHand.addCard(deck.dealNextCard());
@@ -106,16 +114,10 @@ public final class Blackjack {
         commentary.printSplitting();
 
         commentary.printDealingFirstHand();
-        firstInstance.play(AllowBlackjack.FALSE);
+        firstInstance.play(IsSplitHand.TRUE);
 
         commentary.printDealingSecondHand();
-        secondInstance.play(AllowBlackjack.FALSE);
-    }
-
-    private void playSingleHand(Hand dealerHand, Hand playerHand, int betAmount) {
-        commentary.printDealing();
-        HandInstance instance = new HandInstance(dealerHand, playerHand, betAmount);
-        instance.play(AllowBlackjack.TRUE);
+        secondInstance.play(IsSplitHand.TRUE);
     }
 
     private boolean allowSplitting(Hand dealerHand, Hand playerHand, int betAmount) {
@@ -134,14 +136,15 @@ public final class Blackjack {
         pauseForEffect(2000);
 
         // Get a valid game option from user. Repeatedly prompt until option is valid.
-        String optionStr;
+        String str;
         while (true) {
-            optionStr = console.readLine("[d-deal  q-quit]: ");
-            if (optionStr.equals("d") || optionStr.equals("q"))
+            str = console.readLine("[d-deal  q-quit]: ");
+            if (str.equals("d") || str.equals("q")) {
                 break;
+            }
         }
 
-        switch (optionStr) {
+        switch (str) {
             case "d":
                 return GameOption.DEAL;
             case "q":
@@ -210,14 +213,14 @@ public final class Blackjack {
         pauseForEffect(2000);
 
         // Get a valid hand option from user. Repeatedly prompt until option is valid.
-        String optionStr;
+        String str;
         while (true) {
-            optionStr = console.readLine("[s-stay  h-hit]: ");
-            if (optionStr.equals("s") || optionStr.equals("h"))
+            str = console.readLine("[s-stay  h-hit]: ");
+            if (str.equals("s") || str.equals("h"))
                 break;
         }
 
-        switch (optionStr) {
+        switch (str) {
             case "s":
                 return HandOption.STAY;
             case "h":
@@ -251,15 +254,22 @@ public final class Blackjack {
             betAmount = startingBetAmount;
         }
 
-        public void play(AllowBlackjack blackjackRule) {
-            boolean allowBlackjack = (blackjackRule == AllowBlackjack.TRUE);
+        // Play a single hand. Assumes the hand is not a pair. A pair hand should
+        // already be split before calling this function.
+        public void play(IsSplitHand isSplitHand) {
+            assert !playerHand.isPair();
 
-            if (dealerHand.isBlackjack() || (allowBlackjack && playerHand.isBlackjack())) {
-                processBlackjack(allowBlackjack);
+            boolean isSplit = (isSplitHand == IsSplitHand.TRUE);
+
+            if (dealerHand.isBlackjack() || (playerHand.isBlackjack() && !isSplit)) {
+                processBlackjack(isSplit);
                 return;
             }
 
-            playPlayerHand();
+            // Not allowed to take additional cards if this is a hand that was split from aces.
+            if (!isSplit || (isSplit && !playerHand.getFirstCard().isAce())) {
+                playPlayerHand();
+            }
 
             if (playerHand.isBusted()) {
                 processPlayerBust();
@@ -270,7 +280,9 @@ public final class Blackjack {
             }
         }
 
-        private void processBlackjack(boolean allowBlackjack) {
+        private void processBlackjack(boolean isSplitHand) {
+            boolean allowBlackjack = !isSplitHand;
+
             commentary.printDealerHand(dealerHand);
             commentary.printPlayerHand(playerHand);
 
@@ -354,6 +366,7 @@ public final class Blackjack {
                 else if (handOption == HandOption.DOUBLE_DOWN) {
                     float maxBetAmount = Math.min(2 * betAmount, chipCount);
                     betAmount = (int)Math.floor(maxBetAmount);
+
                     playerHand.addCard(deck.dealNextCard());
                     commentary.printDoublingDown();
                     return;
@@ -361,6 +374,7 @@ public final class Blackjack {
                 else if (handOption == HandOption.HIT) {
                     playerHand.addCard(deck.dealNextCard());
                     commentary.printHitting();
+
                     if (playerHand.isBusted()) {
                         return;
                     }

@@ -24,12 +24,15 @@ public final class Hand {
     }
 
     public void addCard(Card card) {
+        assert cards.contains(card);
         cards.add(card);
+
+        // Note: getValue() returns 1 for an ace.
+        hardValue += card.getValue();
+
         if (card.isAce()) {
             hasAce = true;
         }
-        // Note: getValue() returns 1 for an ace.
-        hardValue += card.getValue();
     }
 
     public int getHardValue() {
@@ -38,10 +41,12 @@ public final class Hand {
 
     public int getSoftValue() {
         int softValue = hardValue + 10;
-        if (hasAce && softValue <= 21)
+        if (hasAce && softValue <= 21) {
             return softValue;
-        else
+        }
+        else {
             return hardValue;
+        }
     }
 
     public Card getFirstCard() {
@@ -83,7 +88,6 @@ public final class Hand {
 
     public String showUpCard() {
         // Needed to show dealer's starting hand.
-        assert cards.size() == 2;
         Card upCard = cards.get(0);
         return "[ " + upCard.toString() + " XX" + " ]";
     }

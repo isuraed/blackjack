@@ -10,12 +10,15 @@ public final class Card {
     }
 
     public int getValue() {
-        if (isAce())
+        if (isAce()) {
             return 1;
-        else if (isFaceCard())
+        }
+        else if (isFaceCard()) {
             return 10;
-        else
+        }
+        else {
             return rank - '0';
+        }
     }
 
     public boolean isAce() {
@@ -26,11 +29,13 @@ public final class Card {
         return rank == 'T' || rank == 'J' || rank == 'Q' || rank == 'K';
     }
 
-   public boolean equals(Object other) {
-        if (other instanceof Card)
+    public boolean equals(Object other) {
+        if (other instanceof Card) {
             return rank == ((Card)other).rank && suit == ((Card)other).suit;
-        else
+        }
+        else {
             return false;
+        }
     }
 
     public int hashCode() {
