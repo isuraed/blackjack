@@ -1,7 +1,7 @@
 # blackjack
 A text based blackjack game in Java.
 
-![alt tag](https://raw.githubusercontent.com/isuraed/blackjack/master/blackjack.png)
+![alt tag](https://raw.githubusercontent.com/isuraed/blackjack/master/screenshot.jpg)
 
 ## Rules
 * Blackjack pays 3:2
