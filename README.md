@@ -7,6 +7,7 @@ A text based blackjack game in Java.
 * Blackjack pays 3:2
 * Double down on any two cards
 * Split once
+* Insurance
 
 
 ## Build and Run
