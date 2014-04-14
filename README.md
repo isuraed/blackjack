@@ -4,8 +4,7 @@ A text based blackjack game in Java.
 ## Rules
 * Blackjack pays 3:2
 * Double down on any two cards
-* Split any two cards once
-
+* Split once
 
 
 ## Build and Run
