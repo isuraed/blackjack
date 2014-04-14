@@ -1,6 +1,9 @@
 import java.io.Console;
 
 public final class Blackjack {
+    private static int OPTION_PROMPT_PAUSE_TIME= 1000;
+    private static int BET_PROMPT_PAUSE_TIME = 500;
+
     private Console console;
     private Commentary commentary;
     private Deck deck;
@@ -132,7 +135,7 @@ public final class Blackjack {
     }
 
     private GameOption getValidGameOption() {
-        pauseForEffect(2000);
+        pauseForEffect(OPTION_PROMPT_PAUSE_TIME);
 
         // Get a valid game option from user. Repeatedly prompt until option is valid.
         String str;
@@ -155,7 +158,7 @@ public final class Blackjack {
     }
 
     private int getValidBetAmount() {
-        pauseForEffect(1000);
+        pauseForEffect(BET_PROMPT_PAUSE_TIME);
 
         // Repeatedly prompt until a valid bet amount is entered.
         // We need the try block because parseInt throws.
@@ -175,7 +178,7 @@ public final class Blackjack {
     }
 
     private HandOption getValidStartingHandOption() {
-        pauseForEffect(2000);
+        pauseForEffect(OPTION_PROMPT_PAUSE_TIME);
 
         // Get a valid initial hand option from user. Repeatedly prompt until option is valid.
         // Needed because initially the player has more than simply hit/stay.
@@ -201,7 +204,7 @@ public final class Blackjack {
     }
 
     private HandOption getValidHandOption() {
-        pauseForEffect(2000);
+        pauseForEffect(OPTION_PROMPT_PAUSE_TIME);
 
         // Get a valid hand option from user. Repeatedly prompt until option is valid.
         String str;
@@ -227,7 +230,7 @@ public final class Blackjack {
 
         String str;
         while (true) {
-            str = console.readLine("[Split the pair? (y/n)] :");
+            str = console.readLine("[Split the pair? (y/n)]: ");
             if (str.equals("y")) {
                 return true;
             }
@@ -252,12 +255,14 @@ public final class Blackjack {
         private Hand dealerHand;
         private Hand playerHand;
         int betAmount;
+        boolean isSplitHand;
 
         public HandInstance(Hand dealerStartingHand, Hand playerStartingHand,
             int startingBetAmount) {
             dealerHand = dealerStartingHand;
             playerHand = playerStartingHand;
             betAmount = startingBetAmount;
+            isSplitHand = false;
         }
 
         // Play a single hand. Assumes the hand is not a pair. A pair hand should
@@ -265,15 +270,15 @@ public final class Blackjack {
         public void play(IsSplitHand isSplitHand) {
             assert !playerHand.isPair();
 
-            boolean isSplit = (isSplitHand == IsSplitHand.TRUE);
+            this.isSplitHand = (isSplitHand == IsSplitHand.TRUE);
 
-            if (dealerHand.isBlackjack() || (playerHand.isBlackjack() && !isSplit)) {
-                processBlackjack(isSplit);
+            if (dealerHand.isBlackjack() || (playerHand.isBlackjack() && !this.isSplitHand)) {
+                processBlackjack();
                 return;
             }
 
             // Not allowed to take additional cards if this is a hand that was split from aces.
-            if (!isSplit || (isSplit && !playerHand.getFirstCard().isAce())) {
+            if (!this.isSplitHand || (this.isSplitHand && !playerHand.getFirstCard().isAce())) {
                 playPlayerHand();
             }
 
@@ -286,7 +291,7 @@ public final class Blackjack {
             }
         }
 
-        private void processBlackjack(boolean isSplitHand) {
+        private void processBlackjack() {
             boolean allowBlackjack = !isSplitHand;
 
             commentary.printDealerHand(dealerHand);
@@ -353,8 +358,12 @@ public final class Blackjack {
             assert !playerHand.isBlackjack();
 
             while (true) {
-                commentary.printDealerStartingHand(dealerHand);
-                commentary.printPlayerHand(playerHand);
+                // Tricky situation. If it was a possible splittable hand we might
+                // have already displayed the hand.
+                if (!playerHand.isPair() || isSplitHand) {
+                    commentary.printDealerStartingHand(dealerHand);
+                    commentary.printPlayerHand(playerHand);
+                }
 
                 HandOption handOption;
 
