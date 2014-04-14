@@ -60,6 +60,11 @@ public final class Commentary {
         pauseForEffect(DEALING_PAUSE_TIME);
     }
 
+    public void printLostInsuranceBet() {
+        pauseForEffect(RESULT_PAUSE_TIME);
+        printLine("Dealer does not have blackjack. You lose the insurance bet.");
+    }
+
     public void printDealerStartingHand(Hand dealerHand) {
         printLine("Dealer: " + dealerHand.showUpCard());
     }

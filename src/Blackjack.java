@@ -55,10 +55,23 @@ public final class Blackjack {
                 Hand playerHand = new Hand();
                 dealStartingHands(dealerHand, playerHand);
 
-                if (allowSplitting(dealerHand, playerHand, betAmount)) {
+                boolean allowInsurance = allowInsurance(dealerHand, betAmount);
+                if (allowInsurance) {
                     commentary.printDealing();
-                    commentary.printDealerStartingHand(dealerHand);
-                    commentary.printPlayerHand(playerHand);
+                    printStartingHands(dealerHand, playerHand);
+
+                    boolean takeInsurance = getValidInsuranceDecision();
+                    if (takeInsurance) {
+                        playInsuranceBet(dealerHand, betAmount);
+                    }
+                }
+
+                if (allowSplitting(dealerHand, playerHand, betAmount)) {
+                    if (!allowInsurance) {
+                        // Make sure we don't print the starting hands twice.
+                        commentary.printDealing();
+                        printStartingHands(dealerHand, playerHand);
+                    }
 
                     boolean splitHand = getValidSplitDecision();
 
@@ -70,7 +83,11 @@ public final class Blackjack {
                     }
                 }
                 else {
-                    commentary.printDealing();
+                    if (!allowInsurance) {
+                        commentary.printDealing();
+                        printStartingHands(dealerHand, playerHand);
+                    }
+
                     playSingleHand(dealerHand, playerHand, betAmount);
                 }
 
@@ -90,6 +107,26 @@ public final class Blackjack {
         dealerHand.addCard(deck.dealNextCard());
         playerHand.addCard(deck.dealNextCard());
         dealerHand.addCard(deck.dealNextCard());
+    }
+
+    private void playInsuranceBet(Hand dealerHand, int betAmount) {
+        float insuranceBet = betAmount / 2.0f;
+        assert insuranceBet <= chipCount - betAmount;
+
+        // Insurance pays 2:1.
+        if (dealerHand.isBlackjack()) {
+            increaseChipCount(2.0f * insuranceBet);
+        }
+        else {
+            decreaseChipCount(insuranceBet);
+            commentary.printLostInsuranceBet();
+        }
+    }
+
+    private boolean allowInsurance(Hand dealerHand, int betAmount) {
+        // Make sure player has enough money to make the insurance bet.
+        float insuranceBet = betAmount / 2.0f;
+        return dealerHand.getFirstCard().isAce() && insuranceBet <= chipCount - betAmount;
     }
 
     private void playSingleHand(Hand dealerHand, Hand playerHand, int betAmount) {
@@ -116,14 +153,21 @@ public final class Blackjack {
         commentary.printSplitting();
 
         commentary.printDealingFirstHand();
+        printStartingHands(dealerHand, firstHand);
         firstInstance.play(IsSplitHand.TRUE);
 
         commentary.printDealingSecondHand();
+        printStartingHands(copyDealerHand, secondHand);
         secondInstance.play(IsSplitHand.TRUE);
     }
 
     private boolean allowSplitting(Hand dealerHand, Hand playerHand, int betAmount) {
         return playerHand.isPair() && !dealerHand.isBlackjack() && 2 * betAmount <= chipCount; 
+    }
+
+    private void printStartingHands(Hand dealerHand, Hand playerHand) {
+        commentary.printDealerStartingHand(dealerHand);
+        commentary.printPlayerHand(playerHand);
     }
 
     private void increaseChipCount(float amount) {
@@ -225,8 +269,23 @@ public final class Blackjack {
         }
     }
 
+    private boolean getValidInsuranceDecision() {
+        pauseForEffect(OPTION_PROMPT_PAUSE_TIME);
+
+        String str;
+        while (true) {
+            str = console.readLine("[Take insurance? (y/n)]: ");
+            if (str.equals("y")) {
+                return true;
+            }
+            else if (str.equals("n")) {
+                return false;
+            }
+        }
+    }
+
     private boolean getValidSplitDecision() {
-        pauseForEffect(2000);
+        pauseForEffect(OPTION_PROMPT_PAUSE_TIME);
 
         String str;
         while (true) {
@@ -358,9 +417,8 @@ public final class Blackjack {
             assert !playerHand.isBlackjack();
 
             while (true) {
-                // Tricky situation. If it was a possible splittable hand we might
-                // have already displayed the hand.
-                if (!playerHand.isPair() || isSplitHand) {
+                // This class does not display the starting hands.
+                if (!playerHand.isStartingHand()) {
                     commentary.printDealerStartingHand(dealerHand);
                     commentary.printPlayerHand(playerHand);
                 }
