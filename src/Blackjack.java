@@ -4,7 +4,7 @@ public final class Blackjack {
     private Console console;
     private Commentary commentary;
     private Deck deck;
-    private int chipCount;
+    private float chipCount;
 
     private Blackjack(Console console) {
         assert console != null;
@@ -19,7 +19,9 @@ public final class Blackjack {
     
     private enum HandOption { STAY, HIT, DOUBLE_DOWN, SPLIT }
 
-    private enum SplittingRule { ALLOW, DISALLOW }
+    private enum AllowSplitting { TRUE, FALSE }
+
+    private enum AllowBlackjack { TRUE, FALSE }
 
     public static void main(String[] args) {
         Console console = System.console();
@@ -36,7 +38,7 @@ public final class Blackjack {
 
         commentary.printWelcome();
 
-        while (!gameIsDone && chipCount > 0) {
+        while (!gameIsDone && chipCount >= 1.0) {
             GameOption gameOption = getValidGameOption();
 
             if (gameOption == GameOption.QUIT) {
@@ -46,7 +48,7 @@ public final class Blackjack {
             else {
                 assert gameOption == GameOption.DEAL;
 
-                int betAmount = getValidBetAmount(chipCount);
+                int betAmount = getValidBetAmount();
                 assert betAmount >= 1 && betAmount <= chipCount;
 
                 Hand dealerHand = new Hand();
@@ -58,7 +60,7 @@ public final class Blackjack {
                     commentary.printDealerStartingHand(dealerHand);
                     commentary.printPlayerHand(playerHand);
 
-                    HandOption handOption = getValidStartingHandOption(SplittingRule.ALLOW);
+                    HandOption handOption = getValidStartingHandOption(AllowSplitting.TRUE);
 
                     if (handOption == HandOption.SPLIT) {
                         playSplitHands(dealerHand, playerHand, betAmount);
@@ -71,8 +73,9 @@ public final class Blackjack {
                     playSingleHand(dealerHand, playerHand, betAmount);
                 }
 
-                assert chipCount >= 0;
-                if (chipCount == 0) {
+                // The minimum bet is 1 chip.
+                assert chipCount >= 0.0;
+                if (chipCount < 1.0) {
                     commentary.printOutOfChips();
                 }
             }
@@ -103,28 +106,28 @@ public final class Blackjack {
         commentary.printSplitting();
 
         commentary.printDealingFirstHand();
-        firstInstance.play();
+        firstInstance.play(AllowBlackjack.FALSE);
 
         commentary.printDealingSecondHand();
-        secondInstance.play();
+        secondInstance.play(AllowBlackjack.FALSE);
     }
 
     private void playSingleHand(Hand dealerHand, Hand playerHand, int betAmount) {
         commentary.printDealing();
         HandInstance instance = new HandInstance(dealerHand, playerHand, betAmount);
-        instance.play();
+        instance.play(AllowBlackjack.TRUE);
     }
 
     private boolean allowSplitting(Hand dealerHand, Hand playerHand, int betAmount) {
         return playerHand.isPair() && !dealerHand.isBlackjack() && 2 * betAmount <= chipCount; 
     }
 
-    private void increaseChipCount(int bet) {
-        chipCount += bet;
+    private void increaseChipCount(float amount) {
+        chipCount += amount;
     }
 
-    private void decreaseChipCount(int bet) {
-        chipCount -= bet;
+    private void decreaseChipCount(float amount) {
+        chipCount -= amount;
     }
 
     private GameOption getValidGameOption() {
@@ -149,17 +152,18 @@ public final class Blackjack {
         }
     }
 
-    private int getValidBetAmount(int chipCount) {
+    private int getValidBetAmount() {
         pauseForEffect(1000);
 
         // Repeatedly prompt until a valid bet amount is entered.
         // We need the try block because parseInt throws.
+        int maxBet = (int)Math.floor(chipCount);
         while (true) {
             try {
-                String betStr = console.readLine("[Enter bet amount (1-%d)]: ", chipCount);
+                String betStr = console.readLine("[Enter bet amount (1-%d)]: ", maxBet);
                 int betAmount = Integer.parseInt(betStr);
 
-                if (betAmount >= 1 && betAmount <= chipCount)
+                if (betAmount >= 1 && betAmount <= maxBet)
                     return betAmount;
             }
             catch (NumberFormatException e) {
@@ -168,12 +172,12 @@ public final class Blackjack {
         }
     }
 
-    private HandOption getValidStartingHandOption(SplittingRule splitRule) {
+    private HandOption getValidStartingHandOption(AllowSplitting splittingRule) {
         pauseForEffect(2000);
 
         // Get a valid initial hand option from user. Repeatedly prompt until option is valid.
         // Needed because initially the player has more than simply hit/stay.
-        boolean allowSplitting = (splitRule == SplittingRule.ALLOW);
+        boolean allowSplitting = (splittingRule == AllowSplitting.TRUE);
         String prompt = allowSplitting ?
             "[s-stay  h-hit  d-double  p-split]: " :
             "[s-stay  h-hit  d-double]: ";
@@ -247,9 +251,11 @@ public final class Blackjack {
             betAmount = startingBetAmount;
         }
 
-        public void play() {
-            if (dealerHand.isBlackjack() || playerHand.isBlackjack()) {
-                processBlackjack();
+        public void play(AllowBlackjack blackjackRule) {
+            boolean allowBlackjack = (blackjackRule == AllowBlackjack.TRUE);
+
+            if (dealerHand.isBlackjack() || (allowBlackjack && playerHand.isBlackjack())) {
+                processBlackjack(allowBlackjack);
                 return;
             }
 
@@ -264,19 +270,27 @@ public final class Blackjack {
             }
         }
 
-        private void processBlackjack() {
+        private void processBlackjack(boolean allowBlackjack) {
             commentary.printDealerHand(dealerHand);
             commentary.printPlayerHand(playerHand);
 
             if (dealerHand.isBlackjack() && playerHand.isBlackjack()) {
-                commentary.printBlackjackPush();
+                if (allowBlackjack) {
+                    commentary.printBlackjackPush();
+                }
+                else {
+                    commentary.printPush(dealerHand.getSoftValue());
+                }
             }
             else if (dealerHand.isBlackjack()) {
                 decreaseChipCount(betAmount);
                 commentary.printDealerBlackjack();
             }
             else {
-                increaseChipCount(betAmount);
+                assert playerHand.isBlackjack();
+                assert allowBlackjack;
+                // Blackjack pays 3:2.
+                increaseChipCount(1.5f * betAmount);
                 commentary.printPlayerBlackjack();
             }
         }
@@ -327,7 +341,7 @@ public final class Blackjack {
                 HandOption handOption;
 
                 if (playerHand.isStartingHand()) {
-                    handOption = getValidStartingHandOption(SplittingRule.DISALLOW);
+                    handOption = getValidStartingHandOption(AllowSplitting.FALSE);
                 }
                 else {
                     handOption = getValidHandOption();
@@ -338,7 +352,8 @@ public final class Blackjack {
                     return;
                 }
                 else if (handOption == HandOption.DOUBLE_DOWN) {
-                    betAmount = Math.min(2 * betAmount, chipCount);
+                    float maxBetAmount = Math.min(2 * betAmount, chipCount);
+                    betAmount = (int)Math.floor(maxBetAmount);
                     playerHand.addCard(deck.dealNextCard());
                     commentary.printDoublingDown();
                     return;
